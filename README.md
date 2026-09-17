@@ -1,26 +1,32 @@
 # Codebase Audit
 
-**Code audits that show their work.** One command runs an evidence-first audit with Cursor or Codex, applies reviewable fixes, and writes a report. The library also includes 25 focused prompts for investigating one concern deeply.
+**Code audits that show their work.** One command runs an evidence-first audit with Cursor, Codex, or Claude Code, applies reviewable fixes, and writes a report. The library also includes 25 focused prompts for investigating one concern deeply.
 
 The runner maps the application, checks relevant code and customer paths, fixes problems it can verify, runs available checks, and writes a report. It leaves high-risk or unverified changes for human review. It cannot guarantee that every bug in a codebase is found or fixed.
 
 ## Run once
 
-Install and sign in to the [Cursor CLI](https://cursor.com/docs/cli/installation) or [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), then run this **from the root of the codebase you want to improve**:
+Install and sign in to the [Cursor CLI](https://cursor.com/docs/cli/installation), [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), or [Claude Code CLI](https://code.claude.com/docs/en/setup), then run this **from the root of the codebase you want to improve**:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/samjhill/codebase-audit/main/run.sh | bash
 ```
 
-The command requires Git and a clean working tree. It creates a `codex/audit-*` branch, applies fixes there, and writes `.code-audit/report.md`. It uses Cursor when both CLIs are installed. To choose explicitly, append `-s -- --agent codex` or `-s -- --agent cursor` to the command. Review the diff and report before merging. The agent can run commands and change files; usage charges or plan limits may apply.
+The command requires Git and a clean working tree. It creates an `audit/*` branch, applies fixes there, and writes `.code-audit/report.md`. If multiple CLIs are installed, it chooses Cursor, then Codex, then Claude. To choose explicitly, append `-s -- --agent claude` (or `codex` or `cursor`) to the command. Review the diff and report before merging. The agent can run commands and change files; usage charges or plan limits may apply. Claude runs noninteractively with its [automatic permission mode](https://code.claude.com/docs/en/headless); its classifier may deny an action, which should be recorded in the report.
+
+For Claude Code specifically, use:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/samjhill/codebase-audit/main/run.sh | bash -s -- --agent claude
+```
 
 ## Run periodically
 
-Copy [the GitHub Actions example](examples/periodic-audit.yml) into your codebase as `.github/workflows/audit.yml`, add a `CURSOR_API_KEY` repository secret, and enable **Allow GitHub Actions to create and approve pull requests** under Settings → Actions → General → Workflow permissions. This scheduled example uses Cursor. It runs weekly on the default branch and can also be started manually. It opens a pull request only when code changes. Review each pull request before merging. Scheduled runs use Cursor API usage and GitHub Actions minutes.
+Copy either the [Cursor](examples/periodic-audit.yml) or [Claude](examples/periodic-audit-claude.yml) GitHub Actions example into your codebase as `.github/workflows/audit.yml`. Add a `CURSOR_API_KEY` secret for Cursor or an `ANTHROPIC_API_KEY` secret for Claude. Enable **Allow GitHub Actions to create and approve pull requests** under Settings → Actions → General → Workflow permissions. Each example runs weekly on the default branch, supports manual runs, and opens a pull request only when code changes. Review each pull request before merging. Scheduled runs use agent API usage and GitHub Actions minutes.
 
 ## Use a focused prompt
 
-Open the repository in your coding agent, copy one prompt into its chat, and fill in any bracketed placeholders. For example, the [customer journey audit](customer/customer-journey-audit.md) asks for `[APPLICATION]`, `[START]`, `[KEY STEPS]`, and `[SUCCESS OUTCOME]`. Check the cited files and reproductions before acting on a finding.
+Open the repository in Cursor, Codex, or Claude Code, copy one prompt into its chat, and fill in any bracketed placeholders. For example, the [customer journey audit](customer/customer-journey-audit.md) asks for `[APPLICATION]`, `[START]`, `[KEY STEPS]`, and `[SUCCESS OUTCOME]`. Check the cited files and reproductions before acting on a finding.
 
 For a quick technical pass, try [dead code](code/dead-code.md). For a sensitive workflow, start with the read-only [billing lifecycle](code/backend/billing-lifecycle-audit.md) or [security](security/security-audit.md) audit.
 

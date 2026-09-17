@@ -1,7 +1,7 @@
 # Copy this file into the target repository's .github/workflows/audit.yml.
-# Add CURSOR_API_KEY as a repository secret before enabling the schedule.
+# Add ANTHROPIC_API_KEY as a repository secret before enabling the schedule.
 # Enable "Allow GitHub Actions to create and approve pull requests" in Actions settings.
-name: Periodic code audit
+name: Periodic code audit (Claude)
 on:
   workflow_dispatch:
   schedule:
@@ -17,16 +17,16 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Install Cursor CLI
+      - name: Install Claude Code
         run: |
-          curl -fsS https://cursor.com/install | bash
+          curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Run audit
         env:
-          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           curl -fsSL https://raw.githubusercontent.com/samjhill/codebase-audit/main/run.sh -o /tmp/codebase-audit.sh
-          bash /tmp/codebase-audit.sh --agent cursor --no-branch
+          bash /tmp/codebase-audit.sh --agent claude --no-branch
       - name: Open pull request if code changed
         env:
           GH_TOKEN: ${{ github.token }}

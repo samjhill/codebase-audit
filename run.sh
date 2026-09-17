@@ -4,11 +4,11 @@ set -euo pipefail
 # Run from the root of the codebase to audit, not from this prompt library.
 if [[ "${1:-}" == "--help" ]]; then
   cat <<'HELP'
-Usage: bash run.sh [--agent auto|cursor|codex] [--no-branch]
+Usage: bash run.sh [--agent auto|cursor|codex|claude] [--no-branch]
 
 Run a repository-wide audit and apply reviewable fixes. Requires git and an
-authenticated Cursor or Codex CLI. Auto prefers Cursor when both are installed.
-By default creates a new codex/audit-* branch.
+authenticated Cursor, Codex, or Claude Code CLI. Auto tries Cursor, then Codex,
+then Claude. By default creates a new audit/* branch.
 Use --no-branch only in an isolated CI checkout that will create its own branch.
 HELP
   exit 0
@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --no-branch) no_branch=true; shift ;;
     --agent)
-      if [[ $# -lt 2 ]]; then echo "--agent needs auto, cursor, or codex" >&2; exit 2; fi
+      if [[ $# -lt 2 ]]; then echo "--agent needs auto, cursor, codex, or claude" >&2; exit 2; fi
       audit_agent=$2; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -30,10 +30,11 @@ case "$audit_agent" in
   auto)
     if command -v cursor-agent >/dev/null 2>&1; then audit_agent=cursor
     elif command -v codex >/dev/null 2>&1; then audit_agent=codex
-    else echo "Install and authenticate the Cursor CLI or Codex CLI first." >&2; exit 1
+    elif command -v claude >/dev/null 2>&1; then audit_agent=claude
+    else echo "Install and authenticate the Cursor, Codex, or Claude Code CLI first." >&2; exit 1
     fi ;;
-  cursor|codex) ;;
-  *) echo "Unknown agent: $audit_agent (expected auto, cursor, or codex)" >&2; exit 2 ;;
+  cursor|codex|claude) ;;
+  *) echo "Unknown agent: $audit_agent (expected auto, cursor, codex, or claude)" >&2; exit 2 ;;
 esac
 
 if ! command -v git >/dev/null 2>&1; then echo "Missing git." >&2; exit 1; fi
@@ -42,6 +43,9 @@ if [[ "$audit_agent" == cursor ]] && ! command -v cursor-agent >/dev/null 2>&1; 
 fi
 if [[ "$audit_agent" == codex ]] && ! command -v codex >/dev/null 2>&1; then
   echo "Missing codex. Install Codex CLI and authenticate with codex login." >&2; exit 1
+fi
+if [[ "$audit_agent" == claude ]] && ! command -v claude >/dev/null 2>&1; then
+  echo "Missing claude. Install Claude Code and sign in with claude." >&2; exit 1
 fi
 
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
@@ -54,7 +58,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 if [[ "$no_branch" == false ]]; then
-  branch="codex/audit-$(date -u +%Y%m%d-%H%M%S)"
+  branch="audit/$(date -u +%Y%m%d-%H%M%S)"
   git switch -c "$branch" >/dev/null
   echo "Working on $branch"
 fi
@@ -85,9 +89,14 @@ if [[ "$audit_agent" == cursor ]]; then
     echo "Cursor exited with an error. Review its output and the current diff." >&2
     exit 1
   fi
-else
+elif [[ "$audit_agent" == codex ]]; then
   if ! codex exec --sandbox workspace-write --ephemeral "$prompt"; then
     echo "Codex exited with an error. Review its output and the current diff." >&2
+    exit 1
+  fi
+else
+  if ! claude -p --permission-mode auto --output-format text "$prompt"; then
+    echo "Claude exited with an error. Review its output and the current diff." >&2
     exit 1
   fi
 fi

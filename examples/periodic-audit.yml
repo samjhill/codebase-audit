@@ -1,0 +1,41 @@
+# Copy this file into the target repository's .github/workflows/audit.yml.
+# Add CURSOR_API_KEY as a repository secret before enabling the schedule.
+name: Periodic code audit
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * 1'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Cursor CLI
+        run: |
+          curl -fsS https://cursor.com/install | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Run audit
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/samjhill/useful-cursor-prompts/main/run.sh -o /tmp/useful-cursor-audit.sh
+          bash /tmp/useful-cursor-audit.sh --no-branch
+      - name: Open pull request if code changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ -z "$(git status --porcelain --untracked-files=all | grep -v '^?? .code-audit/' || true)" ]]; then exit 0; fi
+          branch="codex/audit-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add -A
+          git commit -m "chore: periodic code audit"
+          git push origin "$branch"
+          gh pr create --title "Periodic code audit" --body "Review the code changes and .code-audit/report.md before merging." --head "$branch"

@@ -1,88 +1,83 @@
-# Useful Cursor Prompts
+# Code audits that show their work
 
-A **code auditing system** built from Cursor prompts. Each prompt is a focused, repeatable audit you can run against a codebase so Cursor acts like a senior engineer doing a specific kind of pass—without changing behavior unless you intend to.
+**One command to audit a codebase and apply reviewable fixes with Cursor.** Run it once on a clean Git repository, or use the scheduled workflow to get a periodic pull request. The library also includes 25 focused prompts when you want to investigate one concern deeply.
 
-**How to use:** Open a prompt file, copy its contents into Cursor (e.g. in Chat or Composer), and run it in the repo you want to audit. Run from the repo root so Cursor sees the full project.
+The runner maps the application, checks relevant code and customer paths, fixes problems it can verify, runs available checks, and writes a report. It leaves high-risk or unverified changes for human review. It cannot guarantee that every bug in a codebase is found or fixed.
 
----
+## Run once
 
-## Running with Cursor Automations
+Install and sign in to the [Cursor CLI](https://cursor.com/docs/cli/installation), then run this **from the root of the codebase you want to improve**:
 
-You can run these audits automatically using [Cursor Automations](https://cursor.com/docs/cloud-agent/automations) (cloud agents triggered by schedule, GitHub events, webhooks, etc.).
+```bash
+curl -fsSL https://raw.githubusercontent.com/samjhill/useful-cursor-prompts/main/run.sh | bash
+```
 
-1. **Create an automation** at [cursor.com/automations/new](https://cursor.com/automations/new).
-2. **Choose a trigger** (e.g. scheduled weekly, or when a pull request is opened).
-3. **Set the target repo and branch** in the trigger (the codebase you want to audit).
-4. **Write the automation prompt.** In the prompt, tell the agent to run one of the audits. Either:
-   - **Inline:** Paste the full contents of the prompt file (e.g. `code/boundaries.md`) and add: *“Run these instructions against the codebase in this repo. Apply the changes. Preserve behavior.”*
-   - **Reference this repo:** *“Clone or read from https://github.com/samjhill/useful-cursor-prompts. Run the audit in `code/boundaries.md` (or [other path](code/)) on this repository. Apply the changes. Preserve behavior.”*
-5. **Enable “Open pull request”** in the automation’s tools if you want the agent to create a branch and open a PR with the changes.
-6. **Save and run.** The automation will run when the trigger fires (or you can trigger manually if the trigger type supports it).
+The command requires Git and a clean working tree. It creates a `codex/audit-*` branch, applies fixes there, and writes `.code-audit/report.md`. Review the diff and report before merging. The agent can run commands and change files; use it in a repository you trust. Cursor usage charges or plan limits may apply.
 
-**Tips:** Use one automation per audit type (e.g. “dead-code audit”) so each run is focused. For a full pass, run automations in the [suggested order](#suggested-order) and merge each PR before triggering the next, or use a webhook trigger and pass the audit name in the payload so one automation can run different audits.
+## Run periodically
 
-Automations use cloud agents and are [billed accordingly](https://cursor.com/docs/models-and-pricing#model-pricing).
+Copy [the GitHub Actions example](examples/periodic-audit.yml) into your codebase as `.github/workflows/audit.yml`, add a `CURSOR_API_KEY` repository secret, and enable Actions to create a weekly audit pull request when code changes are made. The workflow can also be started manually. Review each pull request before merging. Scheduled runs use Cursor API usage and GitHub Actions minutes.
 
----
+## Use a focused prompt
 
-## Suggested order
+Open the repository in Cursor, copy one prompt into Agent chat, and fill in any bracketed placeholders. For example, the [customer journey audit](customer/customer-journey-audit.md) asks for `[APPLICATION]`, `[START]`, `[KEY STEPS]`, and `[SUCCESS OUTCOME]`. Check the cited files and reproductions before acting on a finding.
 
-Run audits in this order when doing a full pass. Earlier passes clarify structure and surface area; later ones refactor logic and polish.
+For a quick technical pass, try [dead code](code/dead-code.md). For a sensitive workflow, start with the read-only [billing lifecycle](code/backend/billing-lifecycle-audit.md) or [security](security/security-audit.md) audit.
 
-| Order | Prompt | When to use |
-|-------|--------|-------------|
-| 1 | [boundaries](code/boundaries.md) | First. Tighten module/layer boundaries so later audits don’t cross unclear lines. |
-| 2 | [dead-code](code/dead-code.md) | Remove unused code and shrink surface area before renaming or refactoring. |
-| 3 | [dependencies](code/dependencies.md) | Trim unused and duplicate deps; check for outdated or insecure packages. |
-| 4 | [naming-clarity](code/naming-clarity.md) | Improve names so complexity and state passes are easier to reason about. |
-| 5 | [type-safety](code/type-safety.md) | For TypeScript/typed codebases. Tighten types and reduce `any` / loose types. |
-| 6 | [complexity](code/complexity.md) | Reduce accidental complexity (long functions, nested conditionals, unclear flow). |
-| 7 | [state-ownership](code/state-ownership.md) | Clarify state ownership and data flow (especially for frontend/stateful code). |
-| 8 | [edge-case](code/edge-case.md) | Audit error handling, null/empty states, and loading/failure states. |
-| 9 | [security-audit](code/security-audit.md) | Secrets, injection, auth, input validation; document or fix footguns. |
-| 10 | [test-suite](code/test-suite.md) | Trim low-value tests and add a few high-signal tests where risk is highest. |
-| 11 | [github-actions-ci-cost](code/github-actions-ci-cost.md) | When CI is slow or costly: audit workflows for waste; safe YAML and CI-script fixes (concurrency, caching, path filters, gates). |
-| 12 | **Frontend** [code cleanup](code/frontend/frontend-code-cleanup.md) → [logic cleanup](code/frontend/frontend-logic-cleanup.md) → [a11y](code/frontend/a11y.md) | If the repo has a frontend: structure, then state/effects/forms, then accessibility. |
-| 13 | **Backend** [code cleanup](code/backend/backend-code-cleanup.md) → [logic cleanup](code/backend/backend-logic-cleanup.md) → [logging](code/backend/logging.md) | If the repo has a backend: structure, then business logic, then logging consistency. |
-| 14 | [performance](code/performance.md) | After main cleanups. Obvious inefficiencies (N+1, re-renders, bundle size); document bigger wins. |
-| 15 | [engineer-onboarding](code/engineer-onboarding.md) | Last. Improve README, entry points, and inline comments so a new engineer can be productive quickly. |
+These are prompts, not scanners. Results depend on repository access, context, and model behavior. A plausible finding is not a verified bug. A clean security audit is not a security certification.
 
-**Quick passes:** For a single concern, run only the prompt you need (e.g. just [dead-code](code/dead-code.md) or [naming-clarity](code/naming-clarity.md)). Order matters less when you’re not doing a full pass.
+## What a useful finding looks like
 
----
+This is an **illustrative format**, not a finding from a real repository:
 
-## Prompts by category
+> - **Finding:** A duplicate payment webhook can grant the same credit twice.
+> - **Evidence:** `src/billing/webhook.ts:84` writes a credit without checking the provider event ID.
+> - **Reproduce:** Deliver the same sandbox event twice and compare the account balance.
+> - **Impact:** A customer may receive more credit than they purchased.
+> - **Smallest fix:** Persist processed event IDs and make the credit write idempotent.
+> - **Confidence:** Requires a sandbox reproduction; the code path alone does not prove provider retry behavior.
 
-### Cross-cutting (any stack)
+The goal is a decision you can verify, not a long list of generic advice. Read the [design principles](DESIGN.md) for the reasoning behind the prompts.
 
-| Prompt | One-line description |
-|--------|------------------------|
-| [boundaries](code/boundaries.md) | Audit module and layer boundaries; keep UI, business logic, and data layer clearly separated. |
-| [dead-code](code/dead-code.md) | Find and safely remove unused files, exports, functions, and unreachable code. |
-| [dependencies](code/dependencies.md) | Audit deps: unused, duplicate, outdated, or insecure; trim and document. |
-| [naming-clarity](code/naming-clarity.md) | Improve names for functions, variables, components, and files so they describe intent. |
-| [type-safety](code/type-safety.md) | For TypeScript/typed code. Tighten types, reduce `any`, clarify public API types. |
-| [complexity](code/complexity.md) | Break long functions, use guard clauses, name boolean expressions; reduce accidental complexity. |
-| [state-ownership](code/state-ownership.md) | Review state ownership and data flow; one clear owner per piece of state, prefer derived over stored. |
-| [edge-case](code/edge-case.md) | Audit error handling, null/undefined/empty states, and missing loading/failure states. |
-| [security-audit](code/security-audit.md) | Secrets, injection, auth, input validation; fix or document footguns. |
-| [performance](code/performance.md) | Frontend and backend: re-renders, N+1, bundle size; low-risk fixes and documented wins. |
-| [test-suite](code/test-suite.md) | Evaluate test value; remove duplicates and implementation-detail tests, add high-signal tests where risk is high. |
-| [github-actions-ci-cost](code/github-actions-ci-cost.md) | Audit GitHub Actions for slow or wasteful CI/CD; concurrency, caching, path filters, gates, timeouts—without changing app behavior unless needed for CI reliability. |
-| [engineer-onboarding](code/engineer-onboarding.md) | Improve README, entry points, and comments so a new engineer can be productive in about an hour. |
+## Pick an audit
 
-### Frontend
+| If you need to… | Start here |
+| --- | --- |
+| Find a broken customer flow | [Customer journey](customer/customer-journey-audit.md) |
+| Catch misleading success signals | [Operational truth](code/operational-truth.md) |
+| Check whether onboarding is truly ready | [Onboarding readiness](customer/onboarding-readiness-audit.md) |
+| Trace subscription state and payment failures | [Billing lifecycle](code/backend/billing-lifecycle-audit.md) |
+| Investigate security exposure | [Evidence-based security audit](security/security-audit.md) |
+| Find expensive or fragile infrastructure | [Infrastructure](code/infrastructure.md) |
+| Remove unused code | [Dead code](code/dead-code.md) |
+| Reduce CI time or cost | [GitHub Actions CI cost](code/github-actions-ci-cost.md) |
 
-| Prompt | One-line description |
-|--------|------------------------|
-| [frontend-code-cleanup](code/frontend/frontend-code-cleanup.md) | Repo cleanup: structure, consistency, tooling, formatting; no behavior change. |
-| [frontend-logic-cleanup](code/frontend/frontend-logic-cleanup.md) | Deeper refactor: state, derived state, side effects, forms, event handling; thin components, extract logic. |
-| [a11y](code/frontend/a11y.md) | Accessibility: ARIA, keyboard focus, labels, contrast; semantic HTML and existing a11y patterns. |
+### All prompts
 
-### Backend
+**Investigate first:** [customer journey](customer/customer-journey-audit.md) · [onboarding readiness](customer/onboarding-readiness-audit.md) · [billing lifecycle](code/backend/billing-lifecycle-audit.md) · [security audit](security/security-audit.md) · [infrastructure](code/infrastructure.md)
 
-| Prompt | One-line description |
-|--------|------------------------|
-| [backend-code-cleanup](code/backend/backend-code-cleanup.md) | Repo cleanup: structure, API hygiene, error handling, security footguns; no external behavior change. |
-| [backend-logic-cleanup](code/backend/backend-logic-cleanup.md) | Deeper refactor: business rules, services, state transitions, error semantics; thin handlers, testable logic. |
-| [logging](code/backend/logging.md) | Log levels, request IDs, no double-logging or secrets in logs; use existing logging mechanism. |
+**Cross-cutting code:** [operational truth](code/operational-truth.md) · [boundaries](code/boundaries.md) · [dead code](code/dead-code.md) · [dependencies](code/dependencies.md) · [naming](code/naming-clarity.md) · [type safety](code/type-safety.md) · [complexity](code/complexity.md) · [state ownership](code/state-ownership.md) · [edge cases](code/edge-case.md) · [test suite](code/test-suite.md) · [performance](code/performance.md) · [engineer onboarding](code/engineer-onboarding.md) · [CI cost](code/github-actions-ci-cost.md)
+
+**Frontend:** [code cleanup](code/frontend/frontend-code-cleanup.md) · [logic cleanup](code/frontend/frontend-logic-cleanup.md) · [accessibility](code/frontend/a11y.md)
+
+**Backend:** [code cleanup](code/backend/backend-code-cleanup.md) · [logic cleanup](code/backend/backend-logic-cleanup.md) · [logging](code/backend/logging.md)
+
+The older [code security pass](code/security-audit.md) is a short fix-oriented checklist. Use the [evidence-based security audit](security/security-audit.md) when you need a ranked, read-only investigation.
+
+## How to use the results
+
+- Run **one prompt at a time**. Narrow the scope to a feature or service if the repository is large.
+- Give the agent relevant product docs, fixtures, or incident details when you have them. Remove customer data and secrets first.
+- Treat file references and line numbers as leads to inspect. Reproduce high-impact findings with tests, mocks, or sandbox data.
+- For prompts that allow edits, review the plan and diff. Run the repository's checks and verify user-visible behavior before merging.
+- Report false positives and improvements through [issues](https://github.com/samjhill/useful-cursor-prompts/issues) or [a pull request](CONTRIBUTING.md).
+
+## Cursor Automations
+
+[Cursor Automations](https://cursor.com/docs/cloud-agent/automations) can run a focused audit on a schedule or repository event. Paste the prompt into an automation, point it at the target repository, and keep the first run read-only. Review its findings before enabling code changes or pull requests. Cloud runs can incur model usage costs.
+
+## Why this exists
+
+AI coding tools are good at producing plausible suggestions. They are more useful when we ask them to trace actual behavior, state uncertainty, and show how to verify a claim. This library makes those habits repeatable across a codebase. It reflects the engineering approach of [Sam Hill](https://github.com/samjhill); contributions and concrete counterexamples are welcome.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) to propose a prompt or improve an existing one.

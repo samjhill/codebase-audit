@@ -25,8 +25,8 @@ jobs:
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
         run: |
-          curl -fsSL https://raw.githubusercontent.com/samjhill/useful-cursor-prompts/main/run.sh -o /tmp/useful-cursor-audit.sh
-          bash /tmp/useful-cursor-audit.sh --no-branch
+          curl -fsSL https://raw.githubusercontent.com/samjhill/codebase-audit/main/run.sh -o /tmp/codebase-audit.sh
+          bash /tmp/codebase-audit.sh --agent cursor --no-branch
       - name: Open pull request if code changed
         env:
           GH_TOKEN: ${{ github.token }}

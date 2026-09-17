@@ -8,7 +8,7 @@
   <rect width="1280" height="640" fill="url(#bg)"/>
   <circle cx="1160" cy="80" r="260" fill="#254a75" opacity=".22"/>
   <circle cx="1060" cy="570" r="300" fill="#167d7a" opacity=".14"/>
-  <text x="80" y="90" fill="#72e8c9" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="3">USEFUL CURSOR PROMPTS</text>
+  <text x="80" y="90" fill="#72e8c9" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="3">CODEBASE AUDIT</text>
   <text x="80" y="200" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="700">Code audits that</text>
   <text x="80" y="272" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="700">show their work.</text>
   <rect x="80" y="327" width="1120" height="92" rx="16" fill="#0a142b" stroke="#3b5877" stroke-width="2"/>

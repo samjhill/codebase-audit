@@ -4,25 +4,45 @@ set -euo pipefail
 # Run from the root of the codebase to audit, not from this prompt library.
 if [[ "${1:-}" == "--help" ]]; then
   cat <<'HELP'
-Usage: bash run.sh [--no-branch]
+Usage: bash run.sh [--agent auto|cursor|codex] [--no-branch]
 
-Run a repository-wide Cursor audit and apply reviewable fixes. Requires git and
-an authenticated cursor-agent CLI. By default creates a new codex/audit-* branch.
+Run a repository-wide audit and apply reviewable fixes. Requires git and an
+authenticated Cursor or Codex CLI. Auto prefers Cursor when both are installed.
+By default creates a new codex/audit-* branch.
 Use --no-branch only in an isolated CI checkout that will create its own branch.
 HELP
   exit 0
 fi
 
 no_branch=false
-if [[ "${1:-}" == "--no-branch" ]]; then no_branch=true; shift; fi
-if [[ $# -ne 0 ]]; then echo "Unknown argument: $1" >&2; exit 2; fi
-
-for binary in git cursor-agent; do
-  if ! command -v "$binary" >/dev/null 2>&1; then
-    echo "Missing $binary. Install Cursor CLI from https://cursor.com/docs/cli/installation and authenticate with cursor-agent login." >&2
-    exit 1
-  fi
+audit_agent=auto
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-branch) no_branch=true; shift ;;
+    --agent)
+      if [[ $# -lt 2 ]]; then echo "--agent needs auto, cursor, or codex" >&2; exit 2; fi
+      audit_agent=$2; shift 2 ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
+  esac
 done
+
+case "$audit_agent" in
+  auto)
+    if command -v cursor-agent >/dev/null 2>&1; then audit_agent=cursor
+    elif command -v codex >/dev/null 2>&1; then audit_agent=codex
+    else echo "Install and authenticate the Cursor CLI or Codex CLI first." >&2; exit 1
+    fi ;;
+  cursor|codex) ;;
+  *) echo "Unknown agent: $audit_agent (expected auto, cursor, or codex)" >&2; exit 2 ;;
+esac
+
+if ! command -v git >/dev/null 2>&1; then echo "Missing git." >&2; exit 1; fi
+if [[ "$audit_agent" == cursor ]] && ! command -v cursor-agent >/dev/null 2>&1; then
+  echo "Missing cursor-agent. Install Cursor CLI and authenticate with cursor-agent login." >&2; exit 1
+fi
+if [[ "$audit_agent" == codex ]] && ! command -v codex >/dev/null 2>&1; then
+  echo "Missing codex. Install Codex CLI and authenticate with codex login." >&2; exit 1
+fi
 
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
   echo "Run this from a git repository." >&2; exit 1;
@@ -59,10 +79,17 @@ PROMPT
 prompt=$(cat "$prompt_file")
 rm -f "$prompt_file"
 
-echo "Running Cursor audit. This may take time and use your Cursor plan or API quota."
-if ! cursor-agent -p --force --output-format text "$prompt"; then
-  echo "Cursor exited with an error. Review its output and the current diff." >&2
-  exit 1
+echo "Running $audit_agent audit. This may take time and use your agent's plan or API quota."
+if [[ "$audit_agent" == cursor ]]; then
+  if ! cursor-agent -p --force --output-format text "$prompt"; then
+    echo "Cursor exited with an error. Review its output and the current diff." >&2
+    exit 1
+  fi
+else
+  if ! codex exec --sandbox workspace-write --ephemeral "$prompt"; then
+    echo "Codex exited with an error. Review its output and the current diff." >&2
+    exit 1
+  fi
 fi
 
 if [[ ! -f "$report_file" ]]; then

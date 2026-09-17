@@ -4,9 +4,9 @@ Publish after the one-command runner is on `main` and has been tested in a dispo
 
 ## GitHub repository settings
 
-**Description:** One command to audit a codebase with Cursor, apply reviewable fixes, and run it periodically.
+**Description:** One command to audit a codebase with Cursor or Codex, apply reviewable fixes, and run it periodically.
 
-**Topics:** `cursor`, `cursor-ai`, `ai-coding`, `code-audit`, `developer-tools`, `automation`, `code-quality`
+**Topics:** `code-audit`, `ai-coding`, `developer-tools`, `automation`, `code-quality`, `cursor`, `codex`
 
 **Social preview:** Upload `assets/social-preview.png` in Settings → General → Social preview. GitHub does not set this image from a file in the repository.
 
@@ -14,15 +14,15 @@ Publish after the one-command runner is on `main` and has been tested in a dispo
 
 > Working on a production AI product taught me that "green" can still mean the customer outcome failed: a job was queued but never delivered, a mocked test passed while the live path broke, a source was stale, or a notification claimed success too early. I built a repeatable code audit workflow around a stricter standard: trace the real path, separate confirmed failures from guesses, reproduce what matters, and make the smallest fix.
 >
-> The new runner is one command in a clean Git repo. It asks Cursor to audit the application, apply fixes it can verify, run available checks, and leave a report plus a reviewable branch. There's also a scheduled GitHub Actions example that opens a PR when it changes code.
+> Codebase Audit is one command in a clean Git repo. It runs with Cursor or Codex, applies fixes it can verify, runs available checks, and leaves a report plus a reviewable branch. There's also a scheduled GitHub Actions example for Cursor that opens a PR when it changes code.
 >
 > The focused prompts are still there for billing, security, customer journeys, infrastructure, and code quality. I'd especially like feedback on false positives or places where the workflow missed an important path.
 >
-> https://github.com/samjhill/useful-cursor-prompts
+> https://github.com/samjhill/codebase-audit
 
 ## Short developer-community post
 
-> I made a one-command Cursor audit runner and a library of focused prompts. It traces code paths, applies small verified fixes, runs checks, and writes a report on a branch for review. Scheduled runs can open a PR. The design principle: code evidence before confident-sounding advice. Feedback and counterexamples welcome: https://github.com/samjhill/useful-cursor-prompts
+> I made Codebase Audit: one command for Cursor or Codex to trace code paths, apply small verified fixes, run checks, and write a report on a reviewable branch. The design principle: code evidence before confident-sounding advice. Feedback and counterexamples welcome: https://github.com/samjhill/codebase-audit
 
 ## Follow-up post after a verified result
 

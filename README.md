@@ -1,26 +1,26 @@
-# Code audits that show their work
+# Codebase Audit
 
-**One command to audit a codebase and apply reviewable fixes with Cursor.** Run it once on a clean Git repository, or use the scheduled workflow to get a periodic pull request. The library also includes 25 focused prompts when you want to investigate one concern deeply.
+**Code audits that show their work.** One command runs an evidence-first audit with Cursor or Codex, applies reviewable fixes, and writes a report. The library also includes 25 focused prompts for investigating one concern deeply.
 
 The runner maps the application, checks relevant code and customer paths, fixes problems it can verify, runs available checks, and writes a report. It leaves high-risk or unverified changes for human review. It cannot guarantee that every bug in a codebase is found or fixed.
 
 ## Run once
 
-Install and sign in to the [Cursor CLI](https://cursor.com/docs/cli/installation), then run this **from the root of the codebase you want to improve**:
+Install and sign in to the [Cursor CLI](https://cursor.com/docs/cli/installation) or [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), then run this **from the root of the codebase you want to improve**:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/samjhill/useful-cursor-prompts/main/run.sh | bash
+curl -fsSL https://raw.githubusercontent.com/samjhill/codebase-audit/main/run.sh | bash
 ```
 
-The command requires Git and a clean working tree. It creates a `codex/audit-*` branch, applies fixes there, and writes `.code-audit/report.md`. Review the diff and report before merging. The agent can run commands and change files; use it in a repository you trust. Cursor usage charges or plan limits may apply.
+The command requires Git and a clean working tree. It creates a `codex/audit-*` branch, applies fixes there, and writes `.code-audit/report.md`. It uses Cursor when both CLIs are installed. To choose explicitly, append `-s -- --agent codex` or `-s -- --agent cursor` to the command. Review the diff and report before merging. The agent can run commands and change files; usage charges or plan limits may apply.
 
 ## Run periodically
 
-Copy [the GitHub Actions example](examples/periodic-audit.yml) into your codebase as `.github/workflows/audit.yml`, add a `CURSOR_API_KEY` repository secret, and enable **Allow GitHub Actions to create and approve pull requests** under Settings → Actions → General → Workflow permissions. The workflow runs weekly on the default branch and can also be started manually. It opens a pull request only when code changes. Review each pull request before merging. Scheduled runs use Cursor API usage and GitHub Actions minutes.
+Copy [the GitHub Actions example](examples/periodic-audit.yml) into your codebase as `.github/workflows/audit.yml`, add a `CURSOR_API_KEY` repository secret, and enable **Allow GitHub Actions to create and approve pull requests** under Settings → Actions → General → Workflow permissions. This scheduled example uses Cursor. It runs weekly on the default branch and can also be started manually. It opens a pull request only when code changes. Review each pull request before merging. Scheduled runs use Cursor API usage and GitHub Actions minutes.
 
 ## Use a focused prompt
 
-Open the repository in Cursor, copy one prompt into Agent chat, and fill in any bracketed placeholders. For example, the [customer journey audit](customer/customer-journey-audit.md) asks for `[APPLICATION]`, `[START]`, `[KEY STEPS]`, and `[SUCCESS OUTCOME]`. Check the cited files and reproductions before acting on a finding.
+Open the repository in your coding agent, copy one prompt into its chat, and fill in any bracketed placeholders. For example, the [customer journey audit](customer/customer-journey-audit.md) asks for `[APPLICATION]`, `[START]`, `[KEY STEPS]`, and `[SUCCESS OUTCOME]`. Check the cited files and reproductions before acting on a finding.
 
 For a quick technical pass, try [dead code](code/dead-code.md). For a sensitive workflow, start with the read-only [billing lifecycle](code/backend/billing-lifecycle-audit.md) or [security](security/security-audit.md) audit.
 
@@ -70,9 +70,9 @@ The older [code security pass](code/security-audit.md) is a short fix-oriented c
 - Give the agent relevant product docs, fixtures, or incident details when you have them. Remove customer data and secrets first.
 - Treat file references and line numbers as leads to inspect. Reproduce high-impact findings with tests, mocks, or sandbox data.
 - For prompts that allow edits, review the plan and diff. Run the repository's checks and verify user-visible behavior before merging.
-- Report false positives and improvements through [issues](https://github.com/samjhill/useful-cursor-prompts/issues) or [a pull request](CONTRIBUTING.md).
+- Report false positives and improvements through [issues](https://github.com/samjhill/codebase-audit/issues) or [a pull request](CONTRIBUTING.md).
 
-## Cursor Automations
+## Other automation options
 
 [Cursor Automations](https://cursor.com/docs/cloud-agent/automations) can run a focused audit on a schedule or repository event. Paste the prompt into an automation, point it at the target repository, and keep the first run read-only. Review its findings before enabling code changes or pull requests. Cloud runs can incur model usage costs.
 

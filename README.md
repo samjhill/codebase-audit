@@ -16,7 +16,7 @@ The command requires Git and a clean working tree. It creates a `codex/audit-*` 
 
 ## Run periodically
 
-Copy [the GitHub Actions example](examples/periodic-audit.yml) into your codebase as `.github/workflows/audit.yml`, add a `CURSOR_API_KEY` repository secret, and enable Actions to create a weekly audit pull request when code changes are made. The workflow can also be started manually. Review each pull request before merging. Scheduled runs use Cursor API usage and GitHub Actions minutes.
+Copy [the GitHub Actions example](examples/periodic-audit.yml) into your codebase as `.github/workflows/audit.yml`, add a `CURSOR_API_KEY` repository secret, and enable **Allow GitHub Actions to create and approve pull requests** under Settings → Actions → General → Workflow permissions. The workflow runs weekly on the default branch and can also be started manually. It opens a pull request only when code changes. Review each pull request before merging. Scheduled runs use Cursor API usage and GitHub Actions minutes.
 
 ## Use a focused prompt
 

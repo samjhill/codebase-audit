@@ -1,5 +1,6 @@
 # Copy this file into the target repository's .github/workflows/audit.yml.
 # Add CURSOR_API_KEY as a repository secret before enabling the schedule.
+# Enable "Allow GitHub Actions to create and approve pull requests" in Actions settings.
 name: Periodic code audit
 on:
   workflow_dispatch:

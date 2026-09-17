@@ -8,7 +8,7 @@ Publish after the one-command runner is on `main` and has been tested in a dispo
 
 **Topics:** `code-audit`, `ai-coding`, `developer-tools`, `automation`, `code-quality`, `cursor`, `codex`
 
-**Social preview:** Upload `assets/social-preview.png` in Settings → General → Social preview. GitHub does not set this image from a file in the repository.
+**Social preview:** Upload `assets/social-preview.jpg` in Settings → General → Social preview. A plain RGB PNG is also available at `assets/social-preview.png`. GitHub does not set either image from a file in the repository.
 
 ## Launch post
 

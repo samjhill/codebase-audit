@@ -1,64 +1,70 @@
+![Codebase Audit: trace the path, verify the finding, review the fix](assets/social-preview.svg)
+
 # Codebase Audit
 
-**Code audits that show their work.** One command runs an evidence-first audit with Cursor, Codex, or Claude Code, applies reviewable fixes, and writes a report. The library also includes 25 focused prompts for investigating one concern deeply.
+[![Verify runner](https://github.com/samjhill/codebase-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/samjhill/codebase-audit/actions/workflows/ci.yml) [![MIT license](https://img.shields.io/badge/license-MIT-72e8c9)](LICENSE)
 
-The runner maps the application, checks relevant code and customer paths, fixes problems it can verify, runs available checks, and writes a report. It leaves high-risk or unverified changes for human review. It cannot guarantee that every bug in a codebase is found or fixed.
+**One command. A reviewable branch. Evidence before confident-sounding advice.**
+
+Codebase Audit asks Cursor, Codex, or Claude Code to trace a repository's real behavior, reproduce important failures safely, apply small fixes it can verify, run available checks, and write `.code-audit/report.md`. Run it once locally or schedule a weekly pull request. It also includes 25 focused prompts for deeper investigations.
+
+> A green test can mean a fixture passed while the live path broke. A queued job can be called “done” before a customer sees anything. This project asks where the outcome actually becomes true.
+
+[See a real finding in this repository](docs/self-audit.md) · [Read the design principles](DESIGN.md) · [Browse the prompts](#pick-an-audit)
 
 ## Run once
 
-Install and sign in to the [Cursor CLI](https://cursor.com/docs/cli/installation), [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), or [Claude Code CLI](https://code.claude.com/docs/en/setup), then run this **from the root of the codebase you want to improve**:
+Install and sign in to the [Cursor CLI](https://cursor.com/docs/cli/installation), [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), or [Claude Code CLI](https://code.claude.com/docs/en/setup). From the root of a **clean Git repository** you want to audit:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/samjhill/codebase-audit/main/run.sh | bash
 ```
 
-The command requires Git and a clean working tree. It creates an `audit/*` branch, applies fixes there, and writes `.code-audit/report.md`. If multiple CLIs are installed, it chooses Cursor, then Codex, then Claude. To choose explicitly, append `-s -- --agent claude` (or `codex` or `cursor`) to the command. Review the diff and report before merging. The agent can run commands and change files; usage charges or plan limits may apply. Claude runs noninteractively with its [automatic permission mode](https://code.claude.com/docs/en/headless); its classifier may deny an action, which should be recorded in the report.
+The runner selects the first available CLI in this order: Cursor → Codex → Claude. To choose one explicitly, append `-s -- --agent claude` (or `cursor` or `codex`) to the command. It creates an `audit/*` branch, keeps code changes there, and asks the agent for a report. **Review the diff and report before merging.** The agent can execute commands and edit files; your plan limits or API charges apply.
 
-For Claude Code specifically, use:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/samjhill/codebase-audit/main/run.sh | bash -s -- --agent claude
+```text
+your repository
+    ├── audit/* branch             ← reviewable edits
+    └── .code-audit/report.md      ← findings, evidence, checks, unknowns
 ```
+
+The runner fails if the agent exits with an error or omits a nonempty report. A successful exit means the CLI returned zero and wrote a report; it does not establish that every finding or fix is correct. The [runner contract tests](tests/test_runner.py) use disposable repositories and stub CLIs; earlier Cursor and Codex smoke runs fixed a seeded bug. A live Claude run and the scheduled workflows still need validation with your own credentials.
 
 ## Run periodically
 
-Copy either the [Cursor](examples/periodic-audit.yml) or [Claude](examples/periodic-audit-claude.yml) GitHub Actions example into your codebase as `.github/workflows/audit.yml`. Add a `CURSOR_API_KEY` secret for Cursor or an `ANTHROPIC_API_KEY` secret for Claude. Enable **Allow GitHub Actions to create and approve pull requests** under Settings → Actions → General → Workflow permissions. Each example runs weekly on the default branch, supports manual runs, and opens a pull request only when code changes. Review each pull request before merging. Scheduled runs use agent API usage and GitHub Actions minutes.
+Copy the [Cursor workflow](examples/periodic-audit.yml) or [Claude workflow](examples/periodic-audit-claude.yml) into the repository you want to audit as `.github/workflows/audit.yml`. Add `CURSOR_API_KEY` or `ANTHROPIC_API_KEY` as the corresponding GitHub Actions secret. In **Settings → Actions → General → Workflow permissions**, enable **Allow GitHub Actions to create and approve pull requests**.
 
-## Use a focused prompt
+The example runs weekly or on manual dispatch and opens a PR only when code changes. Review every PR before merging. Scheduled runs consume agent API usage and GitHub Actions minutes. [Cursor Automations](https://cursor.com/docs/cloud-agent/automations) are another option for focused audits.
 
-Open the repository in Cursor, Codex, or Claude Code, copy one prompt into its chat, and fill in any bracketed placeholders. For example, the [customer journey audit](customer/customer-journey-audit.md) asks for `[APPLICATION]`, `[START]`, `[KEY STEPS]`, and `[SUCCESS OUTCOME]`. Check the cited files and reproductions before acting on a finding.
+## What makes a finding useful
 
-For a quick technical pass, try [dead code](code/dead-code.md). For a sensitive workflow, start with the read-only [billing lifecycle](code/backend/billing-lifecycle-audit.md) or [security](security/security-audit.md) audit.
+| Question | Required evidence |
+| --- | --- |
+| What failed? | The entry point, state transition, and intended user outcome |
+| Why believe it? | Exact code path and a safe reproduction or clearly labeled inference |
+| What changed? | The smallest practical fix and a reviewable diff |
+| What passed? | Checks labeled unit/fixture, integration, staging, or live; mocked dependencies named |
+| What remains unknown? | Missing telemetry, credentials, provider behavior, or manual verification |
 
-These are prompts, not scanners. Results depend on repository access, context, and model behavior. A plausible finding is not a verified bug. A clean security audit is not a security certification.
-
-## What a useful finding looks like
-
-This is an **illustrative format**, not a finding from a real repository:
-
-> - **Finding:** A duplicate payment webhook can grant the same credit twice.
-> - **Evidence:** `src/billing/webhook.ts:84` writes a credit without checking the provider event ID.
-> - **Reproduce:** Deliver the same sandbox event twice and compare the account balance.
-> - **Impact:** A customer may receive more credit than they purchased.
-> - **Smallest fix:** Persist processed event IDs and make the credit write idempotent.
-> - **Confidence:** Requires a sandbox reproduction; the code path alone does not prove provider retry behavior.
-
-The goal is a decision you can verify, not a long list of generic advice. Read the [design principles](DESIGN.md) for the reasoning behind the prompts.
+The [self-audit](docs/self-audit.md) follows this pattern for a real runner failure. The [operational truth prompt](code/operational-truth.md) applies it to a product's customer outcome.
 
 ## Pick an audit
+
+Open a prompt in Cursor, Codex, or Claude Code and fill in its bracketed placeholders. Focused prompts start with investigation; sensitive billing and security prompts are read-only.
 
 | If you need to… | Start here |
 | --- | --- |
 | Find a broken customer flow | [Customer journey](customer/customer-journey-audit.md) |
 | Catch misleading success signals | [Operational truth](code/operational-truth.md) |
 | Check whether onboarding is truly ready | [Onboarding readiness](customer/onboarding-readiness-audit.md) |
-| Trace subscription state and payment failures | [Billing lifecycle](code/backend/billing-lifecycle-audit.md) |
+| Trace subscription and payment state | [Billing lifecycle](code/backend/billing-lifecycle-audit.md) |
 | Investigate security exposure | [Evidence-based security audit](security/security-audit.md) |
 | Find expensive or fragile infrastructure | [Infrastructure](code/infrastructure.md) |
 | Remove unused code | [Dead code](code/dead-code.md) |
 | Reduce CI time or cost | [GitHub Actions CI cost](code/github-actions-ci-cost.md) |
 
-### All prompts
+<details>
+<summary>All 25 focused prompts</summary>
 
 **Investigate first:** [customer journey](customer/customer-journey-audit.md) · [onboarding readiness](customer/onboarding-readiness-audit.md) · [billing lifecycle](code/backend/billing-lifecycle-audit.md) · [security audit](security/security-audit.md) · [infrastructure](code/infrastructure.md)
 
@@ -68,22 +74,12 @@ The goal is a decision you can verify, not a long list of generic advice. Read t
 
 **Backend:** [code cleanup](code/backend/backend-code-cleanup.md) · [logic cleanup](code/backend/backend-logic-cleanup.md) · [logging](code/backend/logging.md)
 
-The older [code security pass](code/security-audit.md) is a short fix-oriented checklist. Use the [evidence-based security audit](security/security-audit.md) when you need a ranked, read-only investigation.
+The older [code security pass](code/security-audit.md) is a shorter fix-oriented checklist.
 
-## How to use the results
+</details>
 
-- Run **one prompt at a time**. Narrow the scope to a feature or service if the repository is large.
-- Give the agent relevant product docs, fixtures, or incident details when you have them. Remove customer data and secrets first.
-- Treat file references and line numbers as leads to inspect. Reproduce high-impact findings with tests, mocks, or sandbox data.
-- For prompts that allow edits, review the plan and diff. Run the repository's checks and verify user-visible behavior before merging.
-- Report false positives and improvements through [issues](https://github.com/samjhill/codebase-audit/issues) or [a pull request](CONTRIBUTING.md).
+## Limits and contribution
 
-## Other automation options
+These are prompts and an agent runner, not a deterministic scanner or a security certification. A plausible finding is not a verified bug. Repo access cannot establish what happened in production; fixtures cannot prove live acceptance. High-risk changes need human review and safe validation. A codebase-wide pass cannot guarantee it found or fixed every bug.
 
-[Cursor Automations](https://cursor.com/docs/cloud-agent/automations) can run a focused audit on a schedule or repository event. Paste the prompt into an automation, point it at the target repository, and keep the first run read-only. Review its findings before enabling code changes or pull requests. Cloud runs can incur model usage costs.
-
-## Why this exists
-
-AI coding tools are good at producing plausible suggestions. They are more useful when we ask them to trace actual behavior, state uncertainty, and show how to verify a claim. This library makes those habits repeatable across a codebase. It reflects the engineering approach of [Sam Hill](https://github.com/samjhill); contributions and concrete counterexamples are welcome.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) to propose a prompt or improve an existing one.
+This project reflects the engineering approach of [Sam Hill](https://github.com/samjhill). Concrete counterexamples and false positives are especially useful: [open an issue](https://github.com/samjhill/codebase-audit/issues) or [contribute a prompt improvement](CONTRIBUTING.md). Licensed under [MIT](LICENSE).

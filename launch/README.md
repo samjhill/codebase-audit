@@ -12,11 +12,13 @@ Publish after the one-command runner is on `main` and has been tested in a dispo
 
 ## Launch post
 
-> Working on a production AI product taught me that "green" can still mean the customer outcome failed: a job was queued but never delivered, a mocked test passed while the live path broke, a source was stale, or a notification claimed success too early. I built a repeatable code audit workflow around a stricter standard: trace the real path, separate confirmed failures from guesses, reproduce what matters, and make the smallest fix.
+> One of the most revealing bugs I found while building Codebase Audit was in its own runner.
 >
-> Codebase Audit is one command in a clean Git repo. It runs with Cursor, Codex, or Claude Code, applies fixes it can verify, runs available checks, and leaves a report plus a reviewable branch. There are scheduled GitHub Actions examples for Cursor and Claude that open a PR when they change code.
+> An agent could exit successfully without writing the audit report. My runner would create a placeholder and print “Audit complete.” That was a green signal for an outcome that had not happened. I reproduced it in a disposable repo, changed the runner to fail when the report is missing, and added a regression test.
 >
-> The focused prompts are still there for billing, security, customer journeys, infrastructure, and code quality. I'd especially like feedback on false positives or places where the workflow missed an important path.
+> That is the thinking behind Codebase Audit: trace the path to the user-visible outcome, separate observation from inference, fix what you can verify, and name what remains unknown. One command runs with Cursor, Codex, or Claude Code and leaves a reviewable branch and report. There are also weekly PR workflow examples and 25 focused prompts.
+>
+> The self-audit is in the README. I would especially value concrete false positives or cases where the workflow missed the real failure.
 >
 > https://github.com/samjhill/codebase-audit
 

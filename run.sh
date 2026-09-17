@@ -101,12 +101,10 @@ else
   fi
 fi
 
-if [[ ! -f "$report_file" ]]; then
-  {
-    echo "# Code audit"
-    echo
-    echo "The agent did not write a structured report. Review the diff and rerun if needed."
-  } > "$report_file"
+if [[ ! -s "$report_file" ]]; then
+  echo "Audit incomplete: the agent did not write a nonempty $report_file. Review the diff and rerun if needed." >&2
+  git status --short
+  exit 1
 fi
 
 echo "Audit complete. Review $report_file and the diff before merging."
